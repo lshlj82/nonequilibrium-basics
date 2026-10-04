@@ -1,0 +1,740 @@
+<!DOCTYPE html>
+<html lang="en-US">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Rates of Processes, Interactively</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&display=swap" rel="stylesheet">
+<style>
+:root{
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+  --bg:#EDF1F4; --surface:#F8FAFC; --ink:#15202B; --muted:#56636F; --rule:#C5CFD7; --band:#E2E8ED;
+  --hot:#C4402B; --cold:#2B67D1; --acc:#0F7C7B; --dye:#B0307A; --amber:#C8781A; --res:#8B98A4;
+  --serif:"Newsreader",Georgia,"Times New Roman",serif;
+  --sans:"Instrument Sans",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#0E151C; --surface:#141D26; --ink:#E3E9EE; --muted:#97A4B0; --rule:#2B3743; --band:#1B2631;
+    --hot:#FF7A66; --cold:#6E9FF2; --acc:#4FC9C4; --dye:#EF7FBE; --amber:#F0B45C; --res:#5B6976;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0E151C; --surface:#141D26; --ink:#E3E9EE; --muted:#97A4B0; --rule:#2B3743; --band:#1B2631;
+  --hot:#FF7A66; --cold:#6E9FF2; --acc:#4FC9C4; --dye:#EF7FBE; --amber:#F0B45C; --res:#5B6976;
+}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*,*::before,*::after{box-sizing:inherit}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--serif);font-size:1.1rem;line-height:1.62;-webkit-font-smoothing:antialiased}
+img,canvas{max-width:100%}
+a{color:var(--acc)}
+:focus-visible{outline:2px solid var(--acc);outline-offset:3px;border-radius:2px}
+.wrap{max-width:1080px;margin:0 auto;padding:0 clamp(1rem,4vw,2.5rem)}
+.prose{max-width:40rem}
+
+header.hero{padding:clamp(2.5rem,7vw,5rem) 0 1.5rem}
+.credit{font-family:var(--sans);font-size:.9rem;color:var(--muted);margin:0 0 1.25rem}
+h1{font-weight:500;font-size:clamp(2.5rem,7.5vw,5.25rem);line-height:.98;letter-spacing:-.025em;margin:0 0 1.25rem;max-width:12ch}
+.lede{font-size:clamp(1.15rem,2.2vw,1.35rem);max-width:37rem;margin:0}
+
+section{padding:clamp(2.5rem,6vw,4rem) 0;border-top:1px solid var(--rule)}
+section:first-of-type{border-top:0;padding-top:1rem}
+h2{font-weight:500;font-size:clamp(1.7rem,3.5vw,2.35rem);line-height:1.1;letter-spacing:-.015em;margin:0 0 1rem}
+h3{font-family:var(--sans);font-weight:600;font-size:1rem;margin:1.75rem 0 .5rem}
+p{margin:0 0 1rem}
+.note{font-size:.95rem;color:var(--muted)}
+
+.eq{display:block;text-align:center;margin:1.25rem 0;overflow-x:auto;overflow-y:hidden;padding:.25rem 0}
+.eq.multi{display:flex;flex-wrap:wrap;justify-content:center;align-items:center;column-gap:2.2em;row-gap:.65rem}
+.boxed.multi{display:inline-flex;flex-wrap:wrap;justify-content:center;align-items:center;column-gap:2em;row-gap:.6rem;max-width:100%}
+.eqp{max-width:100%}
+.multi.chain{column-gap:.35em}
+mjx-container{color:inherit}
+mjx-container[display="true"]{margin:0 !important}
+.stats mjx-container,.legend mjx-container,.cap mjx-container,.ctl small mjx-container{font-size:105%}
+.ctl output mjx-container{font-size:95%}
+.boxed{display:inline-block;border:1.5px solid var(--acc);padding:.5rem 1rem;border-radius:3px}
+
+.fig{display:grid;grid-template-columns:minmax(0,1fr) 17.5rem;gap:1.5rem;align-items:start;margin-top:1.5rem}
+@media (max-width:820px){.fig{grid-template-columns:1fr}}
+.panel{background:var(--surface);border:1px solid var(--rule);border-radius:6px;padding:1rem}
+.canvas-holder{background:var(--surface);border:1px solid var(--rule);border-radius:6px;overflow:hidden}
+canvas{display:block;width:100%}
+
+.ctl{font-family:var(--sans);font-size:.9rem;margin-bottom:1.1rem}
+.ctl:last-child{margin-bottom:0}
+.ctl label{display:flex;justify-content:space-between;align-items:baseline;gap:.75rem;font-weight:500;margin-bottom:.3rem}
+.ctl .lt{flex:1 1 auto}
+.ctl .lbl{display:block;font-weight:500;margin-bottom:.4rem}
+.ctl output{flex:0 0 auto;white-space:nowrap;font-variant-numeric:tabular-nums;color:var(--muted);font-weight:400}
+.ctl small{display:block;color:var(--muted);line-height:1.4;margin-top:.25rem}
+input[type=range]{width:100%;accent-color:var(--acc);margin:0}
+select{font-family:var(--sans);font-size:.9rem;color:var(--ink);background:var(--surface);border:1px solid var(--rule);border-radius:4px;padding:.4rem .5rem;width:100%}
+.btns{display:flex;flex-wrap:wrap;gap:.5rem}
+button{font-family:var(--sans);font-size:.88rem;font-weight:500;color:var(--ink);background:transparent;border:1px solid var(--rule);border-radius:4px;padding:.45rem .8rem;cursor:pointer}
+button:hover{border-color:var(--ink)}
+button[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.check{display:flex;align-items:center;gap:.5rem;font-weight:500;cursor:pointer}
+.check input{width:1rem;height:1rem;margin:0;accent-color:var(--acc)}
+
+.stats{font-family:var(--sans);font-size:.9rem;display:grid;grid-template-columns:auto auto;gap:.35rem 1rem;margin:0}
+.stats dt{color:var(--muted)}
+.stats dd{margin:0;text-align:right;font-variant-numeric:tabular-nums;font-weight:500;white-space:nowrap}
+.stats .sep{grid-column:1/-1;border-top:1px solid var(--rule);margin:.3rem 0}
+.legend{font-family:var(--sans);font-size:.85rem;color:var(--muted);display:flex;flex-wrap:wrap;gap:1rem;margin:.6rem 0 0;align-items:center}
+.swatch{display:inline-block;width:.75rem;height:.75rem;border-radius:2px;vertical-align:-1px;margin-right:.35rem}
+.swatch.line{height:3px;width:1.1rem;vertical-align:3px;border-radius:0}
+.swatch.dash{height:0;width:1.1rem;vertical-align:3px;border-radius:0;border-top:3px dashed}
+.swatch.dot{border-radius:50%}
+.cap{font-family:var(--sans);font-size:.85rem;color:var(--muted);margin:.5rem .25rem 0}
+.verdict{font-family:var(--sans);font-size:1rem;font-weight:500;margin:.85rem 0 0;max-width:40rem}
+.two{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1rem;margin-top:1.25rem}
+@media (max-width:700px){.two{grid-template-columns:1fr}}
+.big{font-size:clamp(2.2rem,5.5vw,3.2rem);line-height:1;font-weight:500;letter-spacing:-.02em;font-variant-numeric:tabular-nums;margin:.1rem 0 .3rem}
+blockquote{margin:1.25rem 0;padding-left:1rem;border-left:3px solid var(--acc);font-style:italic}
+
+footer{border-top:1px solid var(--rule);padding:2rem 0 3rem;font-family:var(--sans);font-size:.9rem;color:var(--muted)}
+footer p{margin:0 0 .4rem}
+</style>
+<script>
+window.MathJax = {
+  tex: { inlineMath: [['\\(','\\)']], displayMath: [['\\[','\\]']] },
+  svg: { fontCache: 'global' },
+  options: { enableMenu: false }
+};
+</script>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-svg.js"></script>
+</head>
+<body>
+<div class="wrap">
+
+<header class="hero">
+  <p class="credit">An interactive demo created by Claude Opus 5.5, based on the lecture notes by Sang Hoon Lee (Statistical Physics 1, Chapter 1, Section 1.7, an optional section)</p>
+  <h1>Rates of Processes</h1>
+  <p class="lede">Thermodynamics says where a system ends up; it says nothing about how long the trip takes. Heat conduction, viscosity, and diffusion are the processes that carry a system toward equilibrium, and they share one simple pattern: a flux driven by a gradient.</p>
+</header>
+
+<!-- ============ INTRO / FOURIER ============ -->
+<section id="fourier" aria-labelledby="h-fourier">
+  <h2 id="h-fourier">Heat conduction</h2>
+  <div class="prose">
+    <p>The study of nonequilibrium processes, traditionally called transport theory or kinetics, is still a field of active research. Here the focus is on heat transfer. Radiation, which crosses even empty space, is left for later, and convection is too complicated for now. That leaves conduction: at the molecular level, fast molecules in a gas or liquid collide with slow ones and pass on energy, while in a solid the energy is carried by vibrations of the lattice and, in metals, by conduction electrons.</p>
+    <p>The phenomenological theory is simple. The heat crossing a slab of area \(A\) and thickness \(\Delta x\) in time \(\Delta t\) is proportional to \(A\,\Delta T\,\Delta t/\Delta x\); the constant of proportionality is the <strong>thermal conductivity</strong> \(k_t\):</p>
+    <div class="eq"><span class="boxed">\( \displaystyle \frac{Q}{\Delta t} = -k_t A\,\frac{dT}{dx} \)</span></div>
+    <p>This is the <strong>Fourier heat conduction law</strong> (the same Fourier as in Fourier analysis). The minus sign says heat flows downhill: if \(T\) increases from left to right, heat flows from right to left.</p>
+  </div>
+  <div class="fig">
+    <div>
+      <div class="canvas-holder"><canvas id="wallCanvas" aria-label="A wall between a warm inside and a cold outside, with heat flowing through it"></canvas></div>
+    </div>
+    <div class="panel">
+      <div class="ctl">
+        <label for="wMat"><span class="lt">Material</span></label>
+        <select id="wMat">
+          <option value="0.026">Air (still), 0.026</option>
+          <option value="0.033">Styrofoam, 0.033</option>
+          <option value="0.08">Wood, 0.08</option>
+          <option value="0.6">Water, 0.6</option>
+          <option value="0.8" selected>Glass, 0.8</option>
+          <option value="80">Iron, 80</option>
+          <option value="400">Copper, 400</option>
+        </select>
+        <small>\(k_t\) in W/(m·K), typical values.</small>
+      </div>
+      <div class="ctl">
+        <label for="wDx"><span class="lt">Thickness \(\Delta x\)</span> <output id="wDxOut"></output></label>
+        <input type="range" id="wDx" min="1" max="200" step="1" value="3">
+      </div>
+      <div class="ctl">
+        <label for="wDT"><span class="lt">Inside minus outside</span> <output id="wDTOut"></output></label>
+        <input type="range" id="wDT" min="0" max="40" step="1" value="20">
+      </div>
+      <div class="big" id="wPow">–</div>
+      <p class="cap" style="margin:0">of heat flowing out through each square meter</p>
+    </div>
+  </div>
+  <p class="prose note" style="margin-top:1.25rem">This is also why a metal object feels colder than a wooden one at the same temperature: your skin senses the heat flowing out of it, which is far larger for a good conductor, rather than the temperature itself.</p>
+</section>
+
+<!-- ============ HEAT EQUATION ============ -->
+<section id="heateq" aria-labelledby="h-heq">
+  <h2 id="h-heq">The heat equation</h2>
+  <div class="prose">
+    <p>Problem 1.62. In a uniform rod whose temperature varies only along its length, the net heat flowing into a short segment \(\Delta x\) is the difference between what enters from one side and leaves from the other, \(Q_{\text{net}} = k_tA\,(\partial^2T/\partial x^2)\,\Delta x\,\Delta t\). It raises the segment’s temperature by \(Q_{\text{net}}/C\), with heat capacity \(C = c\rho A\,\Delta x\) (specific heat \(c\), density \(\rho\)), giving</p>
+    <div class="eq"><span class="boxed">\( \displaystyle \frac{\partial T}{\partial t} = K\,\frac{\partial^2 T}{\partial x^2}, \qquad K = \frac{k_t}{c\rho} \)</span></div>
+    <p>the <strong>heat equation</strong>, a general form of the <strong>diffusion equation</strong>. It has the solution</p>
+    <div class="eq">\[ T(x,t) = T_0 + \frac{A}{\sqrt{t}}\,e^{-x^2/4Kt} \]</div>
+    <p>a pulse of heat that spreads out and flattens, settling toward the background temperature \(T_0\) as \(t \to \infty\). Below, the rod is solved numerically; its ends are insulated, so no energy leaves. Click or tap on the rod to add heat anywhere.</p>
+  </div>
+  <div class="fig">
+    <div>
+      <div class="canvas-holder"><canvas id="rodCanvas" style="cursor:crosshair" aria-label="Temperature along a rod as heat spreads; click to add heat"></canvas></div>
+      <div class="legend">
+        <span><span class="swatch line" style="background:var(--hot)"></span>Temperature along the rod (numerical)</span>
+        <span id="rodLegExact"><span class="swatch dash" style="border-color:var(--ink)"></span>\(T_0 + (A/\sqrt{t})\,e^{-x^2/4Kt}\)</span>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="ctl"><span class="lbl">Start from</span>
+        <div class="btns">
+          <button type="button" data-rod="pulse" aria-pressed="true">A pulse</button>
+          <button type="button" data-rod="half">Hot half</button>
+          <button type="button" data-rod="two">Two spots</button>
+        </div>
+      </div>
+      <div class="ctl">
+        <label for="rodK"><span class="lt">Diffusivity \(K\)</span> <output id="rodKOut"></output></label>
+        <input type="range" id="rodK" min="0.2" max="3" step="0.05" value="1">
+      </div>
+      <div class="ctl btns"><button type="button" id="rodPlay">Pause</button></div>
+      <dl class="stats">
+        <dt>Time</dt><dd id="rodT">–</dd>
+        <dt>Total heat (conserved)</dt><dd id="rodE">–</dd>
+      </dl>
+      <p class="cap" style="margin:.75rem 0 0">The dashed curve is the exact solution for an infinitely long rod; it matches until the heat reaches the ends.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ MEAN FREE PATH ============ -->
+<section id="gas" aria-labelledby="h-gas">
+  <h2 id="h-gas">Conductivity of an ideal gas</h2>
+  <div class="prose">
+    <p>How far does a gas molecule travel before it hits another? Treat the other molecules as points and give the moving one radius \(2r\): it sweeps out a cylinder of volume \(\pi(2r)^2\ell\), and when that equals the average volume per molecule, a collision is likely. That defines the <strong>mean free path</strong>:</p>
+    <div class="eq">\[ \pi(2r)^2\ell \approx \frac{V}{N} \quad\Longrightarrow\quad \ell \approx \frac{1}{4\pi r^2}\,\frac{V}{N} \]</div>
+    <p>For nitrogen or oxygen, \(r \approx 1.5 \times 10^{-10}\) m; at room temperature and pressure \(V/N = k_{\mathrm{B}}T/P \approx 4 \times 10^{-26}\ \mathrm{m^3}\), so \(\ell \approx 150\ \mathrm{nm}\), about 40 times the average spacing between molecules, and the average time between collisions is \(\overline{\Delta t} = \ell/\bar{v} \approx 3 \times 10^{-10}\ \mathrm{s}\).</p>
+  </div>
+  <div class="fig">
+    <div>
+      <div class="canvas-holder"><canvas id="mfpCanvas" aria-label="A two-dimensional gas of hard disks, with one tracer molecule's zigzag path"></canvas></div>
+      <div class="legend">
+        <span><span class="swatch dot" style="background:var(--hot)"></span>Tracer molecule and its path</span>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="ctl">
+        <label for="mfpN"><span class="lt">Molecules</span> <output id="mfpNOut"></output></label>
+        <input type="range" id="mfpN" min="20" max="300" step="10" value="120">
+      </div>
+      <div class="ctl btns"><button type="button" id="mfpPlay">Pause</button><button type="button" id="mfpReset">Reset counts</button></div>
+      <dl class="stats">
+        <dt>Collisions of the tracer</dt><dd id="mfpC">0</dd>
+        <dt>Measured mean free path</dt><dd id="mfpM">–</dd>
+        <dt>Estimate, \(\tfrac{A/N}{4r}\)</dt><dd id="mfpE">–</dd>
+        <dt>Estimate ÷ √2</dt><dd id="mfpE2">–</dd>
+      </dl>
+      <p class="cap" style="margin:.75rem 0 0">A two-dimensional version: the swept area is \(4r\,\ell\). The estimate treats the other molecules as standing still; because they move too, collisions are more frequent, shortening \(\ell\) by about \(\sqrt{2}\). In a crowded box the molecules’ own size shortens it further. Lengths in units of the molecular radius.</p>
+    </div>
+  </div>
+
+  <h3>Carrying heat across a line</h3>
+  <div class="prose">
+    <p>Imagine a line with box 1 (energy \(U_1\)) on one side and box 2 (\(U_2\)) on the other, each one mean free path wide. In a time \(\Delta t\), about half the molecules in each box cross the line, in random directions, so the net heat flow is</p>
+    <div class="eq multi chain"><span class="eqp">\( \displaystyle Q = \tfrac12(U_1 - U_2) \)</span><span class="eqp">\( \displaystyle = -\tfrac12 C_V(T_2 - T_1) \)</span><span class="eqp">\( \displaystyle = -\tfrac12 C_V\,\ell\,\frac{dT}{dx} \)</span></div>
+    <p>Comparing with Fourier’s law, and using \(\bar{v} = \ell/\Delta t\),</p>
+    <div class="eq multi chain"><span class="eqp">\( \displaystyle k_t = \frac12\,\frac{C_V\,\ell}{A\,\Delta t} = \frac12\,\frac{C_V}{V}\,\ell\,\bar{v}, \)</span><span class="eqp">\( \displaystyle \frac{C_V}{V} = \frac{f}{2}\,\frac{P}{T} \)</span></div>
+    <p>Since \(\ell \propto V/N \propto T/P\), the pressure and the explicit \(T\) cancel, leaving \(k_t \propto \bar{v} \propto \sqrt{T}\), independent of pressure.</p>
+  </div>
+  <div class="fig">
+    <div>
+      <div class="canvas-holder"><canvas id="ktCanvas" aria-label="Predicted thermal conductivity of air versus the square root of temperature"></canvas></div>
+      <div class="legend">
+        <span><span class="swatch line" style="background:var(--acc)"></span>Prediction \(\tfrac12 (C_V/V)\,\ell\,\bar{v}\)</span>
+        <span><span class="swatch dot" style="background:var(--hot)"></span>Measured, air at 300 K</span>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="ctl">
+        <label for="ktT"><span class="lt">Temperature</span> <output id="ktTOut"></output></label>
+        <input type="range" id="ktT" min="100" max="600" step="5" value="300">
+      </div>
+      <div class="ctl">
+        <label for="ktP"><span class="lt">Pressure</span> <output id="ktPOut"></output></label>
+        <input type="range" id="ktP" min="-1" max="1" step="0.01" value="0">
+      </div>
+      <dl class="stats">
+        <dt>Mean free path \(\ell\)</dt><dd id="ktL">–</dd>
+        <dt>Average speed \(\bar{v}\)</dt><dd id="ktV">–</dd>
+        <dt>Time between collisions</dt><dd id="ktDt">–</dd>
+        <dt class="sep"></dt>
+        <dt>Predicted \(k_t\)</dt><dd id="ktK">–</dd>
+      </dl>
+      <p class="cap" style="margin:.75rem 0 0">Air as a diatomic gas (\(f = 5\), 29 u, \(r = 1.5\) Å). Change the pressure: \(\ell\) changes, \(k_t\) doesn’t. Measured conductivities of gases are roughly linear in \(\sqrt{T}\), with slopes depending on the gas.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ VISCOSITY ============ -->
+<section id="visc" aria-labelledby="h-visc">
+  <h2 id="h-visc">Viscosity</h2>
+  <div class="prose">
+    <p>Slide one plate over another with fluid between them, slowly and with a narrow gap, so the flow is <strong>laminar</strong> (entirely horizontal). The top layer of fluid gives up some of its forward momentum to the layer below, and so on down, so a backward force acts on the top plate (and, by Newton’s third law, a forward one on the bottom). The simplest guess, \(F_x/A \propto \Delta u_x/\Delta z\), gives in differential form</p>
+    <div class="eq"><span class="boxed">\( \displaystyle \frac{|F_x|}{A} = \eta\,\frac{du_x}{dz} \)</span></div>
+    <p>where \(u_x\) is the macroscopic flow velocity (not the much faster thermal velocities) and \(\eta\) is the <strong>viscosity</strong>. The left side has units of pressure (Pa) but is not a pressure: it acts parallel to the surface, a <strong>shear stress</strong>.</p>
+    <p>Viscosity is momentum transport, just as conduction is energy transport. In a gas, as for \(k_t\), the momentum density (\(\propto N/V\)) and the mean free path (\(\propto V/N\)) cancel, so \(\eta \propto \sqrt{T}\): gases get more viscous as they warm, because their molecules move faster. Liquids do the opposite. At low temperature their molecules latch onto each other better as they collide, transferring momentum very efficiently; the extreme case is a solid, whose molecules are bonded together permanently.</p>
+  </div>
+  <div class="fig">
+    <div>
+      <div class="canvas-holder"><canvas id="viscCanvas" aria-label="Laminar flow between a moving top plate and a fixed bottom plate"></canvas></div>
+    </div>
+    <div class="panel">
+      <div class="ctl">
+        <label for="vFl"><span class="lt">Fluid</span></label>
+        <select id="vFl">
+          <option value="1.8e-5">Air, 1.8 × 10⁻⁵ Pa·s</option>
+          <option value="1.0e-3" selected>Water, 1.0 × 10⁻³ Pa·s</option>
+          <option value="0.08">Olive oil, 0.08 Pa·s</option>
+          <option value="10">Honey, about 10 Pa·s</option>
+        </select>
+        <small>At room temperature, typical values.</small>
+      </div>
+      <div class="ctl">
+        <label for="vU"><span class="lt">Top plate speed</span> <output id="vUOut"></output></label>
+        <input type="range" id="vU" min="0.01" max="1" step="0.01" value="0.2">
+      </div>
+      <div class="ctl">
+        <label for="vZ"><span class="lt">Gap \(\Delta z\)</span> <output id="vZOut"></output></label>
+        <input type="range" id="vZ" min="0.1" max="5" step="0.1" value="1">
+      </div>
+      <dl class="stats">
+        <dt>Shear stress \(|F_x|/A\)</dt><dd id="vS">–</dd>
+        <dt>Force on 1 m² of plate</dt><dd id="vF">–</dd>
+      </dl>
+    </div>
+  </div>
+  <div class="two">
+    <div>
+      <div class="canvas-holder"><canvas id="etaGas" aria-label="Viscosity of air versus temperature"></canvas></div>
+      <p class="cap">Air: viscosity rises with temperature.</p>
+    </div>
+    <div>
+      <div class="canvas-holder"><canvas id="etaLiq" aria-label="Viscosity of water versus temperature"></canvas></div>
+      <p class="cap">Water: viscosity falls with temperature.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ DIFFUSION ============ -->
+<section id="diff" aria-labelledby="h-diff">
+  <h2 id="h-diff">Diffusion</h2>
+  <div class="prose">
+    <p>Heat conduction transports energy and viscosity transports momentum; <strong>diffusion</strong> transports particles, which tend to spread from where their concentration \(n\) (particles per unit volume) is high to where it is low. In analogy with the other two, the <strong>flux</strong> \(\vec{J}\), the net number of particles crossing a surface per unit area per unit time, obeys</p>
+    <div class="eq"><span class="boxed">\( \displaystyle J_x = -D\,\frac{dn}{dx} \)</span></div>
+    <p><strong>Fick’s law</strong>, with a diffusion coefficient \(D\) that depends on both the molecules diffusing and what they diffuse through. Considering the flux into and out of a short segment of a pipe gives <strong>Fick’s second law</strong> (Problem 1.69), the same equation as for heat:</p>
+    <div class="eq">\[ \frac{\partial n}{\partial t} = D\,\frac{\partial^2 n}{\partial x^2} \]</div>
+    <p>Below, each dye particle takes small random steps, independently of all the others. Nothing pushes them from high to low concentration, yet the histogram follows the smooth solution of Fick’s second law.</p>
+  </div>
+  <div class="fig">
+    <div>
+      <div class="canvas-holder"><canvas id="dyeCanvas" aria-label="Dye particles spreading by random walks in a container"></canvas></div>
+      <div class="canvas-holder" style="margin-top:.75rem"><canvas id="dyeHist" aria-label="Concentration profile of the dye compared with Fick's second law"></canvas></div>
+      <div class="legend">
+        <span><span class="swatch" style="background:var(--dye)"></span>Concentration counted from the particles</span>
+        <span><span class="swatch line" style="background:var(--ink)"></span>Solution of Fick’s second law</span>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="ctl btns">
+        <button type="button" id="dyePlay">Pause</button>
+        <button type="button" id="dyeReset">Start over</button>
+      </div>
+      <div class="ctl">
+        <label for="dyeSpd"><span class="lt">Simulation speed</span> <output id="dyeSpdOut"></output></label>
+        <input type="range" id="dyeSpd" min="0" max="3" step="1" value="1">
+      </div>
+      <dl class="stats">
+        <dt>Time (units of \(L^2/D\))</dt><dd id="dyeT">–</dd>
+        <dt>Typical spread \(\sqrt{2Dt}\)</dt><dd id="dyeS">–</dd>
+      </dl>
+      <p class="cap" style="margin:.75rem 0 0">4000 particles in a box of width \(L\), starting in the leftmost fifth; walls reflect.</p>
+    </div>
+  </div>
+
+  <h3>How long does diffusion take?</h3>
+  <div class="prose">
+    <p>Roughly, for \(N\) particles crossing a region of size \(\Delta x\), \(N/(A\,\Delta t) \approx D\,(N/V)/\Delta x\) with \(V \approx A\,\Delta x\), so \(\Delta t \approx \Delta x^2/D\). The square makes diffusion fast over short distances and hopelessly slow over long ones. For dye in water, \(D \approx 10^{-9}\ \mathrm{m^2/s}\), and spreading over 10 cm takes \(10^7\) s, about 4 months. Ink in a glass mixes in minutes because of the bulk motion of the water (convection), not diffusion.</p>
+  </div>
+  <div class="fig">
+    <div>
+      <div class="canvas-holder"><canvas id="dtCanvas" aria-label="Diffusion time versus distance"></canvas></div>
+    </div>
+    <div class="panel">
+      <div class="ctl">
+        <label for="dtSel"><span class="lt">What is diffusing</span></label>
+        <select id="dtSel">
+          <option value="1e-9" selected>Molecules in water</option>
+          <option value="1e-5">A gas in air</option>
+          <option value="1e-11">A protein in a cell</option>
+        </select>
+        <small id="dtDNote"></small>
+      </div>
+      <div class="ctl">
+        <label for="dtX"><span class="lt">Distance \(\Delta x\)</span> <output id="dtXOut"></output></label>
+        <input type="range" id="dtX" min="-6" max="0" step="0.01" value="-1">
+      </div>
+      <div class="big" id="dtBig">–</div>
+      <p class="cap" style="margin:0">roughly, \(\Delta t \approx \Delta x^2/D\)</p>
+    </div>
+  </div>
+</section>
+</div>
+
+<footer>
+  <div class="wrap">
+    <p>Created by Claude Opus 5.5, based on the lecture notes by Sang Hoon Lee (Statistical Physics 1, Chapter 1, Section 1.7, Rates of Processes, with Problems 1.62 and 1.69).</p>
+    <p>Material constants are typical handbook values. \(k_{\mathrm{B}} = 1.381 \times 10^{-23}\ \mathrm{J/K}\). Equations typeset with MathJax.</p>
+  </div>
+</footer>
+
+<script>
+(function(){
+"use strict";
+const $ = id => document.getElementById(id);
+const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+let C = {};
+function readColors(){
+  const cs = getComputedStyle(document.documentElement);
+  ['bg','surface','ink','muted','rule','band','hot','cold','acc','dye','amber','res'].forEach(k => C[k] = cs.getPropertyValue('--'+k).trim());
+}
+readColors();
+const SANS = '"Instrument Sans", system-ui, sans-serif';
+const SERIF = '"Newsreader", Georgia, serif';
+function fit(cv, LW, LH){
+  const w = cv.parentElement.clientWidth || LW, hgt = w*LH/LW;
+  cv.style.height = hgt + 'px';
+  const d = window.devicePixelRatio || 1;
+  cv.width = Math.round(w*d); cv.height = Math.round(hgt*d);
+  const ctx = cv.getContext('2d'); const s = w*d/LW;
+  ctx.setTransform(s,0,0,s,0,0);
+  return ctx;
+}
+function rich(c, x, y, size, parts, align){
+  c.save(); c.textAlign = 'left';
+  const fontOf = st => st==='i' ? 'italic '+size+'px '+SERIF : st==='isub' ? 'italic '+(size*0.7)+'px '+SERIF : (st==='sub'||st==='sup') ? (size*0.7)+'px '+SERIF : st==='s' ? (size*0.88)+'px '+SANS : size+'px '+SERIF;
+  const widths = parts.map(([t,st]) => { c.font = fontOf(st); return c.measureText(t).width; });
+  const total = widths.reduce((a,b)=>a+b,0);
+  let cx = align==='center' ? x-total/2 : align==='right' ? x-total : x;
+  parts.forEach(([t,st],i) => { c.font = fontOf(st); const dy = (st==='sub'||st==='isub') ? size*0.25 : st==='sup' ? -size*0.38 : 0; c.fillText(t, cx, y+dy); cx += widths[i]; });
+  c.restore(); return total;
+}
+function sci(x, sig){
+  sig = sig || 2;
+  if (!isFinite(x)) return '–'; if (x === 0) return '0';
+  const e = Math.floor(Math.log10(Math.abs(x)));
+  if (e >= -2 && e < 5) return Number(x.toPrecision(sig)).toLocaleString('en-US',{maximumSignificantDigits:sig});
+  let m = (Math.abs(x)/Math.pow(10,e)).toFixed(sig-1), ee = e; if (parseFloat(m) >= 10){ m = (parseFloat(m)/10).toFixed(sig-1); ee++; }
+  return (x<0?'−':'') + m + ' × 10<sup>' + (ee<0?'−'+(-ee):ee) + '</sup>';
+}
+function axes(c, W, H, box, xr, yr, xt, yt, xlab, ylab, xfmt, yfmt){
+  const [L,T,Rr,B] = box;
+  c.clearRect(0,0,W,H); c.fillStyle=C.surface; c.fillRect(0,0,W,H);
+  const X = v => L + (v-xr[0])/(xr[1]-xr[0])*(W-L-Rr), Y = v => H-B - (v-yr[0])/(yr[1]-yr[0])*(H-T-B);
+  c.font='12px '+SANS; c.fillStyle=C.muted; c.textAlign='center';
+  xt.forEach(v => { c.strokeStyle=C.band; c.lineWidth=1; c.beginPath(); c.moveTo(X(v),T); c.lineTo(X(v),H-B); c.stroke(); c.fillText(xfmt ? xfmt(v) : (v<0?'−'+Math.abs(v):String(v)), X(v), H-B+16); });
+  c.textAlign='right'; yt.forEach(v => { c.strokeStyle = v===0 ? C.rule : C.band; c.beginPath(); c.moveTo(L,Y(v)); c.lineTo(W-Rr,Y(v)); c.stroke(); c.fillText(yfmt ? yfmt(v) : (v<0?'−'+Math.abs(v):String(v)), L-6, Y(v)+4); });
+  c.fillStyle=C.muted; if (xlab) rich(c, W-Rr-2, H-8, 14, xlab, 'right');
+  if (ylab){ c.save(); c.globalAlpha=0.85; c.fillStyle=C.surface; c.fillRect(L+2, T-2, 190, 20); c.restore(); c.fillStyle=C.muted; rich(c, L+6, T+12, 14, ylab, 'left'); }
+  c.strokeStyle=C.muted; c.lineWidth=1; c.beginPath(); c.moveTo(L,T); c.lineTo(L,H-B); c.lineTo(W-Rr,H-B); c.stroke();
+  return {X, Y};
+}
+let rs = (Date.now() ^ 0x9e3779b9) >>> 0 || 1;
+const rnd = () => { rs ^= rs << 13; rs >>>= 0; rs ^= rs >>> 17; rs ^= rs << 5; rs >>>= 0; return rs / 4294967296; };
+const gauss = () => { let u=0; while(!u) u=rnd(); return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*rnd()); };
+const kB = 1.380649e-23, amu = 1.66053907e-27;
+const pow10 = e => e===0 ? '1' : e===1 ? '10' : '10' + String(e).replace('-','⁻').replace(/\d/g, d => '⁰¹²³⁴⁵⁶⁷⁸⁹'[d]);
+
+/* ================= WALL (Fourier) ================= */
+let wK = 0.8, wDx = 3, wDT = 20;
+function wallRender(){
+  const P = wK*wDT/(wDx/100);
+  $('wDxOut').textContent = wDx + ' cm'; $('wDTOut').textContent = wDT + ' K';
+  $('wPow').innerHTML = P >= 1e4 ? sci(P,2) + ' W' : (P >= 100 ? Math.round(P).toLocaleString('en-US') : P.toPrecision(3)) + ' W';
+  const c = wallCtx; if (!c) return;
+  const W=640, H=260; c.clearRect(0,0,W,H); c.fillStyle=C.surface; c.fillRect(0,0,W,H);
+  const wx = 280, ww = Math.max(14, Math.min(200, wDx*1.4)), y0 = 30, y1 = 220;
+  // temperature gradient in the wall: outside (left, cold) to inside (right, warm)
+  const g = c.createLinearGradient(wx, 0, wx+ww, 0); g.addColorStop(0, C.cold); g.addColorStop(1, C.hot);
+  c.globalAlpha=0.55; c.fillStyle=g; c.fillRect(wx, y0, ww, y1-y0); c.globalAlpha=1;
+  c.strokeStyle=C.ink; c.lineWidth=1.5; c.strokeRect(wx, y0, ww, y1-y0);
+  c.fillStyle=C.cold; c.font='600 15px '+SANS; c.textAlign='center'; c.fillText('Outside, colder', wx/2, 120);
+  c.fillStyle=C.hot; c.fillText('Inside, warmer', wx+ww+(W-wx-ww)/2, 120);
+  // heat arrows: count grows with log of power
+  const n = Math.max(0, Math.min(9, Math.round(1.6*Math.log10(1 + P))));
+  c.strokeStyle=C.hot; c.fillStyle=C.hot; c.lineWidth=2; c.lineCap='round'; c.lineJoin='round';
+  for (let k=0;k<n;k++){
+    const y = (y0+y1)/2 + (k - (n-1)/2)*20, xs = wx+ww+70, tip = wx-60, head = 11, xe = tip + head - 2;
+    // wavy shaft: the wiggle fades in and out (sin envelope), so it leaves and meets the head on the centerline
+    c.beginPath();
+    for (let i=0;i<=120;i++){ const t = i/120, x = xs + (xe-xs)*t, env = Math.sin(Math.PI*t), yy = y + 3.2*env*Math.sin(t*Math.PI*9); i ? c.lineTo(x,yy) : c.moveTo(x,yy); }
+    c.stroke();
+    // notched arrowhead, tip on the centerline
+    c.beginPath(); c.moveTo(tip, y); c.lineTo(tip+head, y-5.5); c.lineTo(tip+head-3, y); c.lineTo(tip+head, y+5.5); c.closePath(); c.fill();
+  }
+  c.lineCap='butt'; c.lineJoin='miter';
+  c.fillStyle=C.muted; c.font='12px '+SANS; c.textAlign='center'; c.fillText('Δx = ' + wDx + ' cm (not to scale)', wx+ww/2, y1+22);
+  rich(c, wx+ww/2, 20, 14, [['Q','i'],[' flows from hot to cold','s']], 'center');
+}
+$('wMat').addEventListener('change', e => { wK = +e.target.value; wallRender(); });
+$('wDx').addEventListener('input', e => { wDx = +e.target.value; wallRender(); });
+$('wDT').addEventListener('input', e => { wDT = +e.target.value; wallRender(); });
+
+/* ================= ROD (heat equation) ================= */
+const ROD = {n:241, L:12, K:1, T:null, t:0, mode:'pulse', run:!reduceMotion, t0:0.1, A:1};
+const rodX = i => -ROD.L/2 + ROD.L*i/(ROD.n-1);
+function rodInit(mode){
+  ROD.mode = mode; ROD.t = 0; ROD.T = new Float64Array(ROD.n);
+  for (let i=0;i<ROD.n;i++){ const x = rodX(i);
+    if (mode==='pulse') ROD.T[i] = ROD.A/Math.sqrt(ROD.t0)*Math.exp(-x*x/(4*ROD.K*ROD.t0));
+    else if (mode==='half') ROD.T[i] = x < 0 ? 1 : 0;
+    else ROD.T[i] = 1.6*Math.exp(-Math.pow(x+2.5,2)/0.15) + 1.6*Math.exp(-Math.pow(x-2.5,2)/0.15);
+  }
+  ROD.exact = mode === 'pulse';
+}
+function rodStep(dtTotal){
+  const dx = ROD.L/(ROD.n-1), dtMax = 0.4*dx*dx/ROD.K, steps = Math.ceil(dtTotal/dtMax), dt = dtTotal/steps, r = ROD.K*dt/(dx*dx);
+  const T = ROD.T, n = ROD.n, nw = new Float64Array(n);
+  for (let s=0;s<steps;s++){
+    for (let i=0;i<n;i++){ const l = i>0 ? T[i-1] : T[i+1], rr = i<n-1 ? T[i+1] : T[i-1]; nw[i] = T[i] + r*(l - 2*T[i] + rr); } // insulated ends
+    T.set(nw);
+  }
+  ROD.t += dtTotal;
+}
+function rodDraw(){
+  const c = rodCtx; if (!c) return;
+  const W=640, H=360, ymax = 3.4;
+  const ax = axes(c, W, H, [46,16,16,90], [-ROD.L/2, ROD.L/2], [0, ymax], [-6,-4,-2,0,2,4,6], [0,1,2,3], [['x','i']], [['T','i'],[' − ','r'],['T','i'],['0','sub']]);
+  // exact solution for the pulse
+  if (ROD.exact){ const te = ROD.t + ROD.t0; c.strokeStyle=C.ink; c.lineWidth=1.6; c.setLineDash([6,4]); c.beginPath();
+    for (let i=0;i<=300;i++){ const x = -ROD.L/2 + ROD.L*i/300, v = ROD.A/Math.sqrt(te)*Math.exp(-x*x/(4*ROD.K*te)); const y = ax.Y(Math.min(v, ymax*1.05)); i?c.lineTo(ax.X(x),y):c.moveTo(ax.X(x),y); } c.stroke(); c.setLineDash([]); }
+  c.save(); c.beginPath(); c.rect(46,16,W-62,H-106); c.clip();
+  c.strokeStyle=C.hot; c.lineWidth=2.8; c.beginPath();
+  for (let i=0;i<ROD.n;i++){ const y = ax.Y(ROD.T[i]); i?c.lineTo(ax.X(rodX(i)),y):c.moveTo(ax.X(rodX(i)),y); } c.stroke(); c.restore();
+  // the rod itself, colored by temperature
+  const ry = H-58, rh = 22;
+  for (let i=0;i<ROD.n-1;i++){ const v = Math.max(0, Math.min(1, ROD.T[i]/1.6)); const col = 'rgb(' + Math.round(43+(196-43)*v) + ',' + Math.round(103+(64-103)*v) + ',' + Math.round(209+(43-209)*v) + ')';
+    c.fillStyle=col; c.fillRect(ax.X(rodX(i)), ry, ax.X(rodX(i+1))-ax.X(rodX(i))+0.6, rh); }
+  c.strokeStyle=C.ink; c.lineWidth=1.2; c.strokeRect(ax.X(-ROD.L/2), ry, ax.X(ROD.L/2)-ax.X(-ROD.L/2), rh);
+  c.fillStyle=C.ink; c.fillRect(ax.X(-ROD.L/2)-6, ry-4, 6, rh+8); c.fillRect(ax.X(ROD.L/2), ry-4, 6, rh+8);
+  c.fillStyle=C.muted; c.font='12px '+SANS; c.textAlign='center'; c.fillText('the rod (insulated ends); click or tap anywhere above to add heat', W/2, H-14);
+}
+function rodInfo(){
+  $('rodKOut').textContent = ROD.K.toFixed(2); $('rodT').textContent = ROD.t.toFixed(2);
+  const dx = ROD.L/(ROD.n-1); let E = 0; for (let i=0;i<ROD.n;i++) E += ROD.T[i]*dx*((i===0||i===ROD.n-1)?0.5:1);
+  $('rodE').textContent = E.toFixed(3);
+  $('rodPlay').textContent = ROD.run ? 'Pause' : 'Play';
+  document.querySelectorAll('[data-rod]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.rod===ROD.mode)));
+  $('rodLegExact').style.visibility = ROD.exact ? 'visible' : 'hidden';
+}
+document.querySelectorAll('[data-rod]').forEach(b => b.addEventListener('click', () => { rodInit(b.dataset.rod); rodDraw(); rodInfo(); }));
+$('rodK').addEventListener('input', e => { ROD.K = +e.target.value; if (ROD.mode === 'pulse') rodInit('pulse'); rodDraw(); rodInfo(); });
+$('rodPlay').addEventListener('click', () => { ROD.run = !ROD.run; rodInfo(); });
+$('rodCanvas').addEventListener('click', e => {
+  const r = e.currentTarget.getBoundingClientRect(), x = (e.clientX - r.left)/r.width*640;
+  const xv = -ROD.L/2 + (x-46)/(640-62)*ROD.L; if (xv < -ROD.L/2 || xv > ROD.L/2) return;
+  for (let i=0;i<ROD.n;i++){ const d = rodX(i) - xv; ROD.T[i] += 1.5*Math.exp(-d*d/0.12); }
+  ROD.exact = false; ROD.mode = 'custom'; rodDraw(); rodInfo();
+});
+
+/* ================= MEAN FREE PATH (2D hard disks) ================= */
+const MF = {N:120, W:90, H:56, r:1, run:!reduceMotion, p:[], trail:[], coll:0, dist:0, sinceLast:0, flights:[], visible:true};
+function mfInit(){
+  MF.p = []; let tries = 0;
+  while (MF.p.length < MF.N && tries < 20000){ tries++; const x = MF.r + rnd()*(MF.W-2*MF.r), y = MF.r + rnd()*(MF.H-2*MF.r);
+    if (MF.p.every(q => (q.x-x)*(q.x-x)+(q.y-y)*(q.y-y) > 4.4*MF.r*MF.r)) MF.p.push({x, y, vx:gauss()*16, vy:gauss()*16}); }
+  MF.trail = [[MF.p[0].x, MF.p[0].y]]; MF.coll = 0; MF.sinceLast = 0; MF.flights = [];
+}
+function mfStep(dt){
+  const P = MF.p, n = P.length, r2 = 4*MF.r*MF.r;
+  for (const q of P){ q.x += q.vx*dt; q.y += q.vy*dt;
+    if (q.x < MF.r){ q.x = 2*MF.r - q.x; q.vx = Math.abs(q.vx); } else if (q.x > MF.W-MF.r){ q.x = 2*(MF.W-MF.r) - q.x; q.vx = -Math.abs(q.vx); }
+    if (q.y < MF.r){ q.y = 2*MF.r - q.y; q.vy = Math.abs(q.vy); } else if (q.y > MF.H-MF.r){ q.y = 2*(MF.H-MF.r) - q.y; q.vy = -Math.abs(q.vy); } }
+  const t0 = P[0]; MF.sinceLast += Math.hypot(t0.vx, t0.vy)*dt;
+  for (let i=0;i<n;i++) for (let j=i+1;j<n;j++){
+    const a = P[i], b = P[j], dx = b.x-a.x, dy = b.y-a.y, d2 = dx*dx+dy*dy;
+    if (d2 < r2 && d2 > 1e-12){
+      const d = Math.sqrt(d2), nx = dx/d, ny = dy/d, rel = (a.vx-b.vx)*nx + (a.vy-b.vy)*ny;
+      if (rel > 0){ a.vx -= rel*nx; a.vy -= rel*ny; b.vx += rel*nx; b.vy += rel*ny;
+        if (i === 0){ MF.coll++; MF.flights.push(MF.sinceLast); MF.sinceLast = 0; MF.trail.push([a.x, a.y]); if (MF.trail.length > 60) MF.trail.shift(); } }
+      const ov = 2*MF.r - d; if (ov > 0){ a.x -= nx*ov/2; a.y -= ny*ov/2; b.x += nx*ov/2; b.y += ny*ov/2; }
+    }
+  }
+}
+function mfDraw(){
+  const c = mfCtx; if (!c) return;
+  const W=640, H=400, s = (W-20)/MF.W, ox = 10, oy = (H - MF.H*s)/2;
+  c.clearRect(0,0,W,H); c.fillStyle=C.surface; c.fillRect(0,0,W,H);
+  c.strokeStyle=C.rule; c.lineWidth=1.5; c.strokeRect(ox, oy, MF.W*s, MF.H*s);
+  c.fillStyle=C.res; for (let i=1;i<MF.p.length;i++){ const q = MF.p[i]; c.beginPath(); c.arc(ox+q.x*s, oy+q.y*s, MF.r*s, 0, 7); c.fill(); }
+  const t = MF.p[0]; c.strokeStyle=C.hot; c.lineWidth=1.6; c.globalAlpha=0.8; c.beginPath();
+  MF.trail.forEach((p,i) => { i ? c.lineTo(ox+p[0]*s, oy+p[1]*s) : c.moveTo(ox+p[0]*s, oy+p[1]*s); }); c.lineTo(ox+t.x*s, oy+t.y*s); c.stroke(); c.globalAlpha=1;
+  c.fillStyle=C.hot; c.beginPath(); c.arc(ox+t.x*s, oy+t.y*s, MF.r*s, 0, 7); c.fill();
+}
+function mfInfo(){
+  $('mfpNOut').textContent = MF.N; $('mfpC').textContent = MF.coll.toLocaleString('en-US');
+  const est = (MF.W*MF.H/MF.N)/(4*MF.r);
+  $('mfpE').textContent = est.toFixed(1); $('mfpE2').textContent = (est/Math.SQRT2).toFixed(1);
+  const m = MF.flights.length ? MF.flights.reduce((a,b)=>a+b,0)/MF.flights.length : NaN;
+  $('mfpM').textContent = isFinite(m) ? m.toFixed(1) + (MF.flights.length < 100 ? ' (noisy)' : '') : '–';
+  $('mfpPlay').textContent = MF.run ? 'Pause' : 'Play';
+}
+$('mfpN').addEventListener('input', e => { MF.N = +e.target.value; mfInit(); mfDraw(); mfInfo(); });
+$('mfpPlay').addEventListener('click', () => { MF.run = !MF.run; mfInfo(); });
+$('mfpReset').addEventListener('click', () => { MF.coll = 0; MF.flights = []; MF.sinceLast = 0; mfInfo(); });
+
+/* ================= k_t of air ================= */
+let ktT = 300, ktLP = 0;
+function ktRender(){
+  const P = 101325*Math.pow(10, ktLP), m = 28.97*amu, r = 1.5e-10;
+  const kt = T => { const l = kB*T/P/(4*Math.PI*r*r), v = Math.sqrt(8*kB*T/(Math.PI*m)); return 0.5*(2.5*P/T)*l*v; };
+  const l = kB*ktT/P/(4*Math.PI*r*r), v = Math.sqrt(8*kB*ktT/(Math.PI*m));
+  $('ktTOut').textContent = ktT + ' K'; $('ktPOut').textContent = (P/101325 >= 1 ? (P/101325).toFixed(P/101325 >= 9.95 ? 0 : 1) : (P/101325).toPrecision(2)) + ' atm';
+  $('ktL').innerHTML = l >= 1e-6 ? (l*1e6).toPrecision(3) + ' μm' : (l*1e9).toPrecision(3) + ' nm';
+  $('ktV').textContent = Math.round(v) + ' m/s'; $('ktDt').innerHTML = sci(l/v, 2) + ' s';
+  $('ktK').textContent = kt(ktT).toFixed(4) + ' W/(m·K)';
+  const c = ktCtx; if (!c) return;
+  const W=640, H=320, ax = axes(c, W, H, [56,16,16,40], [10,25], [0,0.05], [10,15,20,25], [0,0.01,0.02,0.03,0.04,0.05], [['√','r'],['T','i'],['  (√K)','s']], [['k','i'],['t','isub'],['  (W/m·K)','s']]);
+  c.strokeStyle=C.acc; c.lineWidth=2.6; c.beginPath(); for (let i=0;i<=100;i++){ const sq = 10 + 15*i/100; const y = ax.Y(kt(sq*sq)); i?c.lineTo(ax.X(sq),y):c.moveTo(ax.X(sq),y); } c.stroke();
+  c.fillStyle=C.hot; c.beginPath(); c.arc(ax.X(Math.sqrt(300)), ax.Y(0.026), 6, 0, 7); c.fill();
+  c.fillStyle=C.acc; c.beginPath(); c.arc(ax.X(Math.sqrt(ktT)), ax.Y(kt(ktT)), 5, 0, 7); c.fill();
+  c.fillStyle=C.muted; c.font='12px '+SANS; c.textAlign='left'; c.fillText('measured 0.026', ax.X(Math.sqrt(300))+9, ax.Y(0.026)+16);
+}
+$('ktT').addEventListener('input', e => { ktT = +e.target.value; ktRender(); });
+$('ktP').addEventListener('input', e => { ktLP = +e.target.value; ktRender(); });
+
+/* ================= VISCOSITY ================= */
+const VS = {eta:1e-3, u:0.2, dz:1, phase:0, pts:[]};
+for (let i=0;i<70;i++) VS.pts.push({x:Math.random(), z:Math.random()});
+function viscInfo(){
+  const s = VS.eta*VS.u/(VS.dz/1000);
+  $('vUOut').textContent = VS.u.toFixed(2) + ' m/s'; $('vZOut').textContent = VS.dz.toFixed(1) + ' mm';
+  $('vS').innerHTML = sci(s, 2) + ' Pa'; $('vF').innerHTML = sci(s, 2) + ' N';
+}
+function viscDraw(dt){
+  const c = viscCtx; if (!c) return;
+  const W=640, H=260; c.clearRect(0,0,W,H); c.fillStyle=C.surface; c.fillRect(0,0,W,H);
+  const x0 = 30, x1 = 470, gapPx = 40 + VS.dz*24, yb = 140 + gapPx/2, yt = yb - gapPx;
+  c.fillStyle=C.band; c.fillRect(x0, yt, x1-x0, gapPx);
+  c.fillStyle=C.ink; c.fillRect(x0, yt-8, x1-x0, 8); c.fillRect(x0, yb, x1-x0, 8);
+  // tracers moving with the linear velocity profile
+  VS.pts.forEach(p => { p.x += (dt||0)*VS.u*p.z*0.9; if (p.x > 1) p.x -= 1; c.fillStyle=C.acc; c.beginPath(); c.arc(x0 + p.x*(x1-x0), yb - p.z*gapPx, 3, 0, 7); c.fill(); });
+  // velocity profile arrows on the right
+  c.strokeStyle=C.acc; c.fillStyle=C.acc; c.lineWidth=1.6;
+  for (let k=0;k<=6;k++){ const z = k/6, y = yb - z*gapPx, len = 90*z; if (len < 2) continue; c.beginPath(); c.moveTo(x1+8, y); c.lineTo(x1+8+len, y); c.stroke(); c.beginPath(); c.moveTo(x1+8+len+6, y); c.lineTo(x1+8+len, y-4); c.lineTo(x1+8+len, y+4); c.closePath(); c.fill(); }
+  c.fillStyle=C.muted; c.font='12px '+SANS; c.textAlign='left';
+  rich(c, x1+12, yt-14, 14, [['u','i'],['x','isub'],[' ∝ height','s']], 'left');
+  c.fillStyle=C.ink; c.fillText('moving plate →', x0, yt-14); c.fillText('fixed plate', x0, yb+24);
+  c.fillStyle=C.cold; c.fillText('← drag force on the top plate', x0+140, yt-14);
+}
+$('vFl').addEventListener('change', e => { VS.eta = +e.target.value; viscInfo(); });
+$('vU').addEventListener('input', e => { VS.u = +e.target.value; viscInfo(); });
+$('vZ').addEventListener('input', e => { VS.dz = +e.target.value; viscInfo(); viscDraw(0); });
+function etaCharts(){
+  const air = [[0,17.2],[20,18.1],[40,19.0],[60,19.9],[80,20.9],[100,21.8]], water = [[0,1.79],[20,1.00],[40,0.65],[60,0.47],[80,0.35],[100,0.28]];
+  [[etaGasCtx, air, [16,23], [16,18,20,22], [['η','i'],['  (μPa·s)','s']]],[etaLiqCtx, water, [0,2], [0,0.5,1,1.5,2], [['η','i'],['  (mPa·s)','s']]]].forEach(([c, data, yr, yt, lab]) => {
+    if (!c) return; const W=440, H=260, ax = axes(c, W, H, [44,16,14,40], [0,100], yr, [0,20,40,60,80,100], yt, [['T','i'],['  (°C)','s']], lab);
+    c.strokeStyle=C.acc; c.lineWidth=2.4; c.beginPath(); data.forEach(([t,v],i) => { i?c.lineTo(ax.X(t),ax.Y(v)):c.moveTo(ax.X(t),ax.Y(v)); }); c.stroke();
+    c.fillStyle=C.acc; data.forEach(([t,v]) => { c.beginPath(); c.arc(ax.X(t),ax.Y(v),4,0,7); c.fill(); });
+  });
+}
+
+/* ================= DIFFUSION ================= */
+const DY = {n:4000, x:null, y:null, t:0, run:!reduceMotion, spd:1, D:0.0004};
+const DY_SPEEDS = [0.5, 1, 2, 4];
+function dyInit(){ DY.x = new Float64Array(DY.n); DY.y = new Float64Array(DY.n); for (let i=0;i<DY.n;i++){ DY.x[i] = rnd()*0.2; DY.y[i] = rnd(); } DY.t = 0; }
+function dyStep(nsub){
+  const s = Math.sqrt(2*DY.D); // per unit time step, dt = 1 sub-step
+  for (let k=0;k<nsub;k++){
+    for (let i=0;i<DY.n;i++){ let x = DY.x[i] + s*gauss(), y = DY.y[i] + s*gauss();
+      if (x < 0) x = -x; else if (x > 1) x = 2 - x; if (y < 0) y = -y; else if (y > 1) y = 2 - y; DY.x[i] = x; DY.y[i] = y; }
+    DY.t += DY.D; // time in units of L^2/D
+  }
+}
+function fickProfile(x, t){ // initial uniform in [0, a], reflecting walls; normalized so the average over [0,1] is 1
+  const a = 0.2; let v = 1; for (let k=1;k<=80;k++){ v += 2*Math.sin(k*Math.PI*a)/(k*Math.PI*a)*Math.cos(k*Math.PI*x)*Math.exp(-k*k*Math.PI*Math.PI*t); } return v;
+}
+function dyDraw(){
+  const c = dyCtx; if (!c) return;
+  const W=640, H=300, ox=10, oy=10, w=W-20, h=H-20;
+  c.clearRect(0,0,W,H); c.fillStyle=C.surface; c.fillRect(0,0,W,H);
+  c.strokeStyle=C.rule; c.strokeRect(ox, oy, w, h);
+  c.fillStyle=C.dye; c.globalAlpha=0.6; for (let i=0;i<DY.n;i+=2){ c.fillRect(ox + DY.x[i]*w - 1, oy + DY.y[i]*h - 1, 2, 2); } c.globalAlpha=1;
+  const hc = dyHistCtx; if (!hc) return;
+  const HW=640, HH=240, nb = 40, cnt = new Float64Array(nb); for (let i=0;i<DY.n;i++) cnt[Math.min(nb-1, (DY.x[i]*nb)|0)]++;
+  const dens = Array.from(cnt, v => v/(DY.n/nb));
+  const ax = axes(hc, HW, HH, [46,16,16,40], [0,1], [0,5.4], [0,0.25,0.5,0.75,1], [0,1,2,3,4,5], [['x','i'],[' / ','r'],['L','i']], [['n','i'],[' (relative to average)','s']]);
+  hc.fillStyle=C.dye; hc.globalAlpha=0.55; dens.forEach((v,b) => { const y = ax.Y(Math.min(v,5.4)); hc.fillRect(ax.X(b/nb)+1, y, ax.X(1/nb)-ax.X(0)-2, ax.Y(0)-y); }); hc.globalAlpha=1;
+  hc.strokeStyle=C.ink; hc.lineWidth=2.2; hc.beginPath(); for (let i=0;i<=200;i++){ const x = i/200; const y = ax.Y(Math.min(5.4, fickProfile(x, DY.t))); i?hc.lineTo(ax.X(x),y):hc.moveTo(ax.X(x),y); } hc.stroke();
+}
+function dyInfo(){
+  $('dyeT').textContent = DY.t.toFixed(3); $('dyeS').textContent = Math.sqrt(2*DY.t).toFixed(2) + ' L';
+  $('dyeSpdOut').textContent = DY_SPEEDS[DY.spd] + '×'; $('dyePlay').textContent = DY.run ? 'Pause' : 'Play';
+}
+$('dyePlay').addEventListener('click', () => { DY.run = !DY.run; dyInfo(); });
+$('dyeReset').addEventListener('click', () => { dyInit(); dyDraw(); dyInfo(); });
+$('dyeSpd').addEventListener('input', e => { DY.spd = +e.target.value; dyInfo(); });
+
+/* ---------- diffusion time ---------- */
+let dtD = 1e-9, dtLX = -1;
+function durStr(s){
+  const U = [[1,'s'],[60,'min'],[3600,'h'],[86400,'days'],[86400*30.4,'months'],[86400*365.25,'years']];
+  if (s < 1) return s >= 1e-3 ? (s*1000).toPrecision(2) + ' ms' : sci(s,2) + ' s';
+  let u = U[0]; for (const v of U) if (s >= v[0]) u = v;
+  const v = s/u[0]; return (v >= 100 ? Math.round(v).toLocaleString('en-US') : v.toPrecision(2)) + ' ' + u[1];
+}
+function lenStr(m){ return m >= 1 ? m.toPrecision(2) + ' m' : m >= 1e-2 ? (m*100).toPrecision(2) + ' cm' : m >= 1e-3 ? (m*1000).toPrecision(2) + ' mm' : (m*1e6).toPrecision(2) + ' μm'; }
+function dtRender(){
+  const x = Math.pow(10, dtLX), t = x*x/dtD;
+  $('dtXOut').textContent = lenStr(x); $('dtBig').innerHTML = durStr(t);
+  $('dtDNote').innerHTML = '<i>D</i> ≈ ' + sci(dtD, 1) + ' m<sup>2</sup>/s, a typical value.';
+  const c = dtCtx; if (!c) return;
+  const W=640, H=300;
+  const ax = axes(c, W, H, [56,16,16,40], [-6,0], [-4,12], [-6,-5,-4,-3,-2,-1,0], [-4,0,4,8,12], [['Δx','i'],['  (m, log scale)','s']], [['Δt','i'],['  (s, log scale)','s']], pow10, pow10);
+  [[1e-5,'gas in air'],[1e-9,'molecules in water'],[1e-11,'protein in a cell']].forEach(([D,lab]) => {
+    const sel = D === dtD; c.save(); c.beginPath(); c.rect(56,16,W-72,H-56); c.clip(); c.strokeStyle = sel ? C.acc : C.res; c.lineWidth = sel ? 2.8 : 1.4; c.beginPath();
+    for (let i=0;i<=100;i++){ const lx = -6 + 6*i/100, lt = 2*lx - Math.log10(D); const y = ax.Y(lt); i?c.lineTo(ax.X(lx),y):c.moveTo(ax.X(lx),y); } c.stroke(); c.restore();
+    const lxl = Math.min(-0.3, (11 + Math.log10(D))/2 - 0.2), ltl = 2*lxl - Math.log10(D);
+    c.fillStyle = sel ? C.acc : C.muted; c.font=(sel?'600 ':'')+'12px '+SANS; c.textAlign='right'; c.fillText(lab, ax.X(lxl)-6, ax.Y(Math.min(11.5, ltl))+4);
+  });
+  [[0,'1 s'],[Math.log10(3600),'1 h'],[Math.log10(86400*365.25),'1 yr']].forEach(([lt,lab]) => { c.strokeStyle=C.band; c.setLineDash([3,4]); c.beginPath(); c.moveTo(ax.X(-6),ax.Y(lt)); c.lineTo(ax.X(0),ax.Y(lt)); c.stroke(); c.setLineDash([]); c.fillStyle=C.muted; c.font='11px '+SANS; c.textAlign='left'; c.fillText(lab, ax.X(-5.95), ax.Y(lt)-4); });
+  const lt = 2*dtLX - Math.log10(dtD); c.fillStyle=C.hot; c.beginPath(); c.arc(ax.X(dtLX), ax.Y(Math.max(-4,Math.min(12,lt))), 6, 0, 7); c.fill();
+}
+$('dtSel').addEventListener('change', e => { dtD = +e.target.value; dtRender(); });
+$('dtX').addEventListener('input', e => { dtLX = +e.target.value; dtRender(); });
+
+/* ================= LAYOUT + LOOP ================= */
+let wallCtx, rodCtx, mfCtx, ktCtx, viscCtx, etaGasCtx, etaLiqCtx, dyCtx, dyHistCtx, dtCtx;
+function layout(){
+  wallCtx = fit($('wallCanvas'), 640, 260); rodCtx = fit($('rodCanvas'), 640, 360);
+  mfCtx = fit($('mfpCanvas'), 640, 400); ktCtx = fit($('ktCanvas'), 640, 320);
+  viscCtx = fit($('viscCanvas'), 640, 260); etaGasCtx = fit($('etaGas'), 440, 260); etaLiqCtx = fit($('etaLiq'), 440, 260);
+  dyCtx = fit($('dyeCanvas'), 640, 300); dyHistCtx = fit($('dyeHist'), 640, 240); dtCtx = fit($('dtCanvas'), 640, 300);
+  redrawAll();
+}
+function redrawAll(){ wallRender(); rodDraw(); rodInfo(); mfDraw(); mfInfo(); ktRender(); viscInfo(); viscDraw(0); etaCharts(); dyDraw(); dyInfo(); dtRender(); }
+let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(layout, 80); });
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => { readColors(); redrawAll(); });
+const vis = {rod:true, mf:true, visc:true, dye:true};
+const io = new IntersectionObserver(es => es.forEach(e => { vis[e.target.dataset.key] = e.isIntersecting; }));
+[['rodCanvas','rod'],['mfpCanvas','mf'],['viscCanvas','visc'],['dyeCanvas','dye'],['dyeHist','dye']].forEach(([id,k]) => { $(id).dataset.key = k; io.observe($(id)); });
+let last = performance.now(), infoT = 0;
+function loop(now){
+  const dt = Math.min(0.05, (now-last)/1000); last = now; infoT += dt;
+  if (ROD.run && vis.rod && rodCtx){ rodStep(dt*0.6); rodDraw(); }
+  if (MF.run && vis.mf && mfCtx){ for (let k=0;k<3;k++) mfStep(dt/3); mfDraw(); }
+  if (vis.visc && viscCtx && !reduceMotion) viscDraw(dt);
+  if (DY.run && vis.dye && dyCtx){ DY.acc = (DY.acc || 0) + DY_SPEEDS[DY.spd]; const k = Math.floor(DY.acc); DY.acc -= k; if (k > 0){ dyStep(k); dyDraw(); } }
+  if (infoT > 0.25){ infoT = 0; if (vis.rod) rodInfo(); if (vis.mf) mfInfo(); if (vis.dye) dyInfo(); }
+  requestAnimationFrame(loop);
+}
+rodInit('pulse'); mfInit(); dyInit();
+layout();
+requestAnimationFrame(loop);
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(redrawAll);
+})();
+</script>
+</body>
+</html>
